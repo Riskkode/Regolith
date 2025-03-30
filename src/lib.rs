@@ -13,9 +13,11 @@ use crate::menu::MenuPlugin;
 use crate::player::PlayerPlugin;
 
 use bevy::app::App;
+use bevy::diagnostic::DiagnosticsStore;
 #[cfg(debug_assertions)]
 use bevy::diagnostic::{FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin};
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 // This example game uses States to separate logic
 // See https://bevy-cheatbook.github.io/programming/states.html
@@ -41,11 +43,32 @@ impl Plugin for GamePlugin {
             ActionsPlugin,
             InternalAudioPlugin,
             PlayerPlugin,
+            FpsPlugin,
         ));
 
         #[cfg(debug_assertions)]
         {
             app.add_plugins((FrameTimeDiagnosticsPlugin, LogDiagnosticsPlugin::default()));
+        }
+    }
+}
+
+pub struct FpsPlugin;
+impl Plugin for FpsPlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Update, display_fps);
+    }
+}
+
+fn display_fps(
+    diagnostics: Res<DiagnosticsStore>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    if let Ok(mut window) = windows.get_single_mut() {
+        if let Some(fps_raw) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(fps_smoothed) = fps_raw.smoothed() {
+                window.title = format!("Regolith | FPS: {:.2} | ", fps_smoothed);
+            }
         }
     }
 }
